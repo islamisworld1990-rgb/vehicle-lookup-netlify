@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vehicle + Mobile Lookup — Dark</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#0f1720; --muted:#94a3b8; --accent:#60a5fa; --success:#34d399;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Noto Mono", monospace;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#061018 0%, #08131a 100%);color:#e6eef6;font-family:Inter,system-ui,Arial,sans-serif}
+    .wrap{max-width:920px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;gap:12px}
+    h1{margin:0;font-size:20px}
+    .card{background:var(--panel);border-radius:12px;padding:18px;box-shadow:0 6px 24px rgba(2,6,23,0.6)}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    input{flex:1;padding:12px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;font-size:15px}
+    button{padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#04243a;font-weight:600;cursor:pointer}
+    .hint{color:var(--muted);font-size:13px;margin-top:8px}
+    pre{background:#06111a;padding:12px;border-radius:8px;color:#cfe8ff;overflow:auto;font-family:var(--mono);font-size:13px}
+    .mobile{font-weight:700;font-size:18px;margin-bottom:10px;color:var(--success)}
+    .foot{color:var(--muted);font-size:13px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="card" style="display:inline-block;padding:10px;border-radius:10px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 11l2-6h14l2 6v7a1 1 0 0 1-1 1h-1a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H4a1 1 0 0 1-1-1v-7z" stroke="#60a5fa" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <h1>Vehicle + Mobile Lookup (Dark)</h1>
+        <div class="hint">Bas vehicle number daalein. Backend proxy CORS hata dega — Netlify pe deploy karna zaroori.</div>
+      </div>
+    </header>
+
+    <div style="height:18px"></div>
+
+    <div class="card">
+      <label style="font-size:13px">Registration number (example: <code>HR98M5370</code>)</label>
+      <div class="controls">
+        <input id="vehicle" placeholder="Enter vehicle number e.g. HR98M5370" />
+        <button id="search">Search</button>
+      </div>
+      <div id="status" class="hint" style="margin-top:10px"></div>
+
+      <div id="result" style="margin-top:16px"></div>
+
+      <div class="foot">Note: Yeh site Netlify serverless function ke saath kaam karta hai — upload repo to Netlify (steps in README). Agar locally test karna hai, use <code>netlify dev</code>.</div>
+    </div>
+
+  </div>
+
+<script>
+document.getElementById('search').addEventListener('click', async () => {
+  const v = document.getElementById('vehicle').value.trim();
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  result.innerHTML = '';
+  if (!v) { status.textContent = 'Number daalein pehle.'; return; }
+  status.textContent = 'Requesting...';
+  try {
+    const res = await fetch('/.netlify/functions/proxy?vehicle=' + encodeURIComponent(v));
+    if (!res.ok) {
+      const txt = await res.text();
+      status.textContent = 'Server error: ' + res.status;
+      result.innerHTML = '<pre>' + escapeHtml(txt) + '</pre>';
+      return;
+    }
+    const data = await res.json();
+    status.textContent = 'Success';
+
+    // display mobile if present
+    let mobile = null;
+    try {
+      const a1 = data.api1 || {};
+      const a2 = data.api2 || {};
+      mobile = a1.ownerMobile || a1.owner_mobile || a1.owner || a1.mobile || a1['Owner Mobile'] || a2.ownerMobile || a2.mobile || (a2.contact && a2.contact.phone) || null;
+    } catch(e) { mobile = null }
+
+    const out = [];
+    if (mobile) out.push('<div class="mobile">Owner Mobile: ' + escapeHtml(mobile) + '</div>');
+    out.push('<h3 style="margin-bottom:6px">API 1</h3>');
+    out.push('<pre>' + escapeHtml(JSON.stringify(data.api1, null, 2)) + '</pre>');
+    out.push('<h3 style="margin-bottom:6px">API 2</h3>');
+    out.push('<pre>' + escapeHtml(JSON.stringify(data.api2, null, 2)) + '</pre>');
+    result.innerHTML = out.join('');
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  }
+});
+
+function escapeHtml(s){ return String(s).replace(/[&<>]/g, (c)=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+</script>
+</body>
+</html>

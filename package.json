@@ -1,0 +1,12 @@
+{
+  "name": "vehicle-lookup-netlify",
+  "version": "1.0.0",
+  "description": "Proxy + frontend for vehicle lookup",
+  "main": "netlify/functions/proxy.js",
+  "scripts": {
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
